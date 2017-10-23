@@ -1,5 +1,6 @@
 int sum (int *a, int n) {
     int sum = 0;
+
     for(int i = 0; i < n; i = i + 1) {
         sum = sum +  a[i];
     }
@@ -20,6 +21,7 @@ int main(int argc, char** argv) {
     int* a;
     int n;
     n = 1000;
-    a = malloc(n * sizeof(int));
-    return sum(a, n);
+    a = malloc(1000 * sizeof(int));
+    return sum(a, 1000);
 }
+

@@ -1,117 +1,168 @@
-# https://github.com/victornicolet/pycparser/blob/master/examples/tutorial.py
-
-# The ast file is in
-# https://github.com/victornicolet/pycparser/blob/master/pycparser/c_ast.py
-
 import sys
-
-# This is not required if you've installed pycparser into
-# your site-packages/ with setup.py
-#
+from pycparser import parse_file
+from pycparser.c_ast import *
 sys.path.extend(['.', '..'])
 
-from pycparser import c_parser, c_ast, parse_file
-
-# First we need to parse the input
-parser = c_parser.CParser()
+# - 1 Basics
+# Read and parse the file
 ast = parse_file('./c_files/tutorial.c')
+# Now the 'ast' variables contains the ast we want to work on
+# To look at how the ast is built, have a look at the c_ast.py file
+# in the pycparser package (../pycparser/c_ast.py)
+
+# For example an Assignment is a superclass of the Node class with the
+# following fields:
+# - op , the assignment operator, can be '+', '+=', '-=", ...
+# - lvalue, the left hand side of the assignment
+# - rvalue, the right hand side of the assignment
+
+# Any analysis of the program in our case will be based on visitors.
+# Visitors are object that visit the nodes of the abstract syntax tree
+# recursively, peforming operation depdending on the node type they
+# traverse.
+
+# For example, let us write a visitor that shows the left-hand side values
+# of the assignments
+
+class LHSPrinter(NodeVisitor):
+    # The type of node a function visits depends on its name
+    # Here we want to do something special when the visitor
+    # encounters an Assignment node (look at the c_ast.py to
+    # see how it is defined).
+    def visit_Assignment(self, assignment):
+        # The assignment node has a 'lvalue' field, we just
+        # want to show it here
+        assignment.lvalue.show()
+
+    # And for all the other node types, the visitor will just
+    # go recursively through them without doing anything.
+
+# Let us visit the whole ast. For that you need to call the
+# visit method of an instance of LHSPrinter on the ast TEST
+# lhsp = LHSPrinter()
+# lhsp.visit(ast)
+# Alternatively, you write directly:
+# LHSPrinter().visit(ast)
+# since we don't care about the results, it is just outputs.
+
+# Now this is not nicely presented. Let us visit the different function nodes,
+# and if the function is not the main function, then print the left-hand side
+# values in its body.
 
 
-# Let us have a look at how the program represents the AST
-#ast.show()
+class FunctionDefVisitor(NodeVisitor):
+    # Now we are visiting function definitions, which are represented
+    # by FuncDef nodes with the following (interesting) fields:
+    #  'decl', 'param_decls', 'body'
+    # And the 'decl' will be a Decl node with the fields (from c_ast.py);
+    # class Decl(Node):
+    # __slots__ = ('name', 'quals', 'storage', 'funcspec', 'type', 'init', ...
+    # where 'name' will be the function name in our case.
+    def visit_FuncDef(self, funcdef):
+        # Check that we are not in the main function
+        if funcdef.decl.name != 'main':
+            print('\nIn function %s on the left hand sides:' % funcdef.decl.name)
+            # Then we call the lhs-printer on the body of the function
+            LHSPrinter().visit(funcdef.body)
+        else:
+            print "\nWe don't care about main."
 
-# We can also show the first external definition of the AST
-# ast.ext[0].show()
-
-# The ast is a tree with nodes. Here each node is a superclass of Node with
-# slots representing the different attributes or the children of the node.
-# For example, Assignment has the attributes op, lvalue, rvalue, coord.
-# - The op is the assignment operator, it could be '=', '+=', '++', etc...
-# - The lvalue is the value on the left hand side of the assignment operator.
-# - The rvalue is the value on the right hand side of the assignment operator.
-# - The coord field represents the coordinates of the statement in the original
-#  C file.
-# (for all the other nodes have a look at the c_ast.py file.
-
-# To explore and perform operations on the AST, we need to extend the
-# NodeVisitor class.
-# The NodeVisitor class has two methods, visit(Node) and generic_visit(Node).
-# - To visit and perform actions on specific Nodes, you have to implement
-#  visit_XXX(self, node) methods
-# that will visit the XXX type nodes.
-# - For a node of type XXX, if no visit_XXX method has been specified,
-# the generic_visit(self,node) is called.
-# - Careful, by default the children of a node visited by a visit_XXX method will not be visited. If you want
-# to visit the children of the XXX node, call generic_visit(XXX) on your node.
-
-# The following class should implement a visitor for Assignments, and show the lvalue of the assignments
-# class PrintLvalues(c_ast.NodeVisitor):
-#     def visit_Assignment(self, assignment):
-#         TODO
-#
-# print "Left values in the full AST"
-# plv = PrintLvalues()
-# plv.visit(ast)
-# print ""
+# Now we can call it on the ast TEST
+# FunctionDefVisitor().visit(ast)
 
 
-# Now we would like to print the left values only in function that are not the 'main' function.
-# For each function, we want to print its name and then visit its body
-# class DontVisitMainFunc(c_ast.NodeVisitor):
-#     def visit_FuncDef(self, funcdef):
-#         # We now what a funcdef Node looks like, so we can look for its name
-#         if TODO:
-#             print("In function %s :" % funcdef.decl.name)
-#             # Now we want to continue visiting the node of the body using the left values printer
-#             # visitor
-#             PrintLvalues().visit(funcdef.body)
-#
-#
-# print "Left values in functions that are not main"
-# DontVisitMainFunc().visit(ast)
+# Now you might have noticed when we do a declaration with and initial value,
+# like this one :
+# int sum = 0;
+# The visitor didn't print anything. If we want if to print any value that
+# is on the left hand side of a '=' sign then we have to handle Decl nodes
+# that represent declaration statements.
+# So now with our new LHSPrinter
 
 
-# You should get the idea by now: to visit an AST, you can implement different classes extending the
-# NodeVisitor class and the in each class implement one or more visitor functions. Now let us
-# try to do some dataflow analysis using visitors.
+class LHSPrinter2(NodeVisitor):
 
-# First exercise: we want to have the set of variables written in a function. We assume that
-# there are no side effects, and the only way to write in a variable is with an assignment.
+    def visit_Assignment(self, assignment):
+        assignment.lvalue.show()
 
-# What is the effect of an assignment on the set of written variables? We just need to write in it.
-# class WriteSetVisitor(c_ast.NodeVisitor):
-#     def __init__(self, writeset):
-#         if writeset is None:
-#             self.writeset = set()
-#         else:
-#             self.writeset = writeset
-#
-#     def visit_Assignment(self, assignment):
-        # The written variables are the variables on the left hand side
-        # TODO
+    def visit_Decl(self, decl):
+        # If the declaration has an init field
+        if decl.init is not None:
+            # Show the name of the value initialized
+            print "ID: %s" % decl.name
+
+# Be careful about the representation of the DATA in the AST. You noticed that
+# here the declaration has a name, which is a string, but the assignment's left
+# hand side is not a name but another node, on which we call 'show()'
 
 
-# Now we want to have the writeset of each function, we create another visitor
-# class FuncDefsVisitor(c_ast.NodeVisitor):
-#     def __init__(self):
-#         self.writesets = {}
-#
-#     def visit_FuncDef(self, node):
-#         TODO
-#
-# func_visit = FuncDefsVisitor()
-# func_visit.visit(ast)
-#
-# for funcname, writeset  in func_visit.writesets.items():
-#     print "\nin function %s :" % funcname
-#     for lval in writeset:
-#         print lval.name
+class FunctionDefVisitor2(NodeVisitor):
 
-# class ConstantPropagation(c_ast.NodeVisitor):
-#     # We keep a map of variable names to constants
-#     def __init__(self):
-#         self.storage = {}
-#     def visit_Decl(self, node):
-#         TODO
-#
-# VisitDecl().visit(ast)
+    def visit_FuncDef(self, funcdef):
+        if funcdef.decl.name != 'main':
+            print('\nIn function %s on the left hand sides:' % funcdef.decl.name)
+            LHSPrinter2().visit(funcdef.body)
+        else:
+            print "\nWe don't care about main."
+
+# Now we can call it on the ast TEST
+# FunctionDefVisitor2().visit(ast)
+
+
+# Now let us do something more interesting than printing values
+# with our visitor.
+# We can add memory to it, and operate on it as we visit the nodes
+# of the AST.
+# We start with a simple first example. The visitor remembers the variables
+# appearing on the left hand side of an assignment.
+# This can be seen as a 'write-set' analysis, where the program doesn't have side
+# effects and the only way to write in variables is to assign something to them.
+
+# When a visitor has visited a code block, it should have the set of written variables
+# in its memory
+
+class WriteSetVisitor(NodeVisitor):
+    def __init__(self):
+        # The 'memory' of the node: the set of variables we are writing in.
+        self.writeset = set()
+
+    # What we do when we visit an assignment.
+    def visit_Assignment(self, assignment):
+        # Add the lvalue if is is an ID node
+        # we don't care about other types of lvalues in this
+        # very simple analysis.
+
+        if isinstance(assignment.lvalue, ID):
+            self.writeset.add(assignment.lvalue.name)
+
+    # What happens when we visit a declaration.
+    # Similar to the previous example: we add the variable name
+    def visit_Decl(self, decl):
+        if decl.init is not None:
+            self.writeset.add(decl.name)
+
+
+# We can wrap this in a function visitor
+class FuncWriteSetVisitor(NodeVisitor):
+    def __init__(self):
+        # The dict associates function names to write sets:
+        self.writesets = {}
+
+    def visit_FuncDef(self, funcdef):
+        # Create a WriteSet visitor for the body of the function
+        wsv = WriteSetVisitor()
+        # Execute it on the function's body
+        wsv.visit(funcdef.body)
+        # Now it contains the writeset of the function
+        self.writesets[funcdef.decl.name] = wsv.writeset
+
+# TEST
+# fws = FuncWriteSetVisitor()
+# fws.visit(ast)
+# # Now print the write sets for each function:
+# for fname, writeset in fws.writesets.items():
+#     # Print 'function string' writes in 'set representation'
+#     print ("%s writes in %r" % (fname, writeset))
+
+
+
