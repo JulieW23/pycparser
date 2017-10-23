@@ -97,10 +97,10 @@ ast = parse_file('./c_files/tutorial.c')
 #     for lval in writeset:
 #         print lval.name
 
-class ConstantPropagation(c_ast.NodeVisitor):
-    # We keep a map of variable names to constants
-    def __init__(self):
-        self.storage = {}
+# class ConstantPropagation(c_ast.NodeVisitor):
+#     # We keep a map of variable names to constants
+#     def __init__(self):
+#         self.storage = {}
 #     def visit_Decl(self, node):
 #         TODO
 #
