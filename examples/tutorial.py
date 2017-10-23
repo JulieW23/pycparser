@@ -144,6 +144,19 @@ class WriteSetVisitor(NodeVisitor):
         if decl.init is not None:
             self.writeset.add(decl.name)
 
+    # Here we have a single visitor looking in the whole tree. But you
+    # might sometimes need to handle merge cases (when you have to
+    # look in a specific way into different branches)
+    # For example, we could have added the following function
+    def visit_If(self, ifnode):
+        wif = WriteSetVisitor()
+        welse = WriteSetVisitor()
+        wif.visit(ifnode.iftrue)
+        welse.visit(ifnode.iffalse)
+        self.writeset.union(wif.writeset.union(welse.writeset.union()))
+
+    # In this case it is not really interesting, the visitor would have added
+    # the variables anyway, but it could be in other cases.
 
 # We can wrap this in a function visitor
 class FuncWriteSetVisitor(NodeVisitor):
