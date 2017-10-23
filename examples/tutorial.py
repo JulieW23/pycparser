@@ -3,7 +3,8 @@ from pycparser import parse_file
 from pycparser.c_ast import *
 sys.path.extend(['.', '..'])
 
-# - 1 Basics
+# - 1 Basics: parsing and visiting the AST
+
 # Read and parse the file
 ast = parse_file('./c_files/tutorial.c')
 # Now the 'ast' variables contains the ast we want to work on
@@ -109,6 +110,8 @@ class FunctionDefVisitor2(NodeVisitor):
 # FunctionDefVisitor2().visit(ast)
 
 
+# 2 - Analyzing programs
+
 # Now let us do something more interesting than printing values
 # with our visitor.
 # We can add memory to it, and operate on it as we visit the nodes
@@ -165,4 +168,20 @@ class FuncWriteSetVisitor(NodeVisitor):
 #     print ("%s writes in %r" % (fname, writeset))
 
 
+# 3 - Transforming trees
 
+# To transform a tree, you just need to modify the nodes as you go.
+# For example, let us write a NodeVisitor that replaces every
+# initialization with 0 by an initialization with -1:
+ast2 = ast
+
+
+class ReplaceZero(NodeVisitor):
+    def visit_Decl(self, decl):
+        # We use 'and' and not '&' here because we can check the second part
+        # of the condition only when the first is true.
+        if decl.init is not None and decl.init.value == '0':
+            decl.init.value = '-1'
+
+ReplaceZero().visit(ast2)
+ast2.ext[0].body.show()
