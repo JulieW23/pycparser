@@ -1,4 +1,12 @@
-import sys
+#-----------------------------------------------------------------
+# pycparser: tutorial.py
+#
+# Examples on how to use NodeVisitor to perform some simple analysis.
+#
+# Victor Nicolet [victorn at cs dot toronto.edu]
+# License: BSD
+#-----------------------------------------------------------------
+
 from pycparser import parse_file
 from pycparser.c_ast import *
 sys.path.extend(['.', '..'])
