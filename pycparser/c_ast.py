@@ -94,7 +94,7 @@ class NodeVisitor(object):
             def visit_Constant(self, node):
                 self.values.append(node.value)
 
-        Creates a list of values of all the constant nodes
+        Creates a list of values of all the bant nodes
         encountered below the given node. To use it:
 
         cv = ConstantVisitor()
