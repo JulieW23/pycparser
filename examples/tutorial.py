@@ -1,3 +1,8 @@
+# https://github.com/victornicolet/pycparser/blob/master/examples/tutorial.py
+
+# The ast file is in
+# https://github.com/victornicolet/pycparser/blob/master/pycparser/c_ast.py
+
 import sys
 
 # This is not required if you've installed pycparser into
@@ -24,13 +29,18 @@ ast = parse_file('./c_files/tutorial.c')
 # - The op is the assignment operator, it could be '=', '+=', '++', etc...
 # - The lvalue is the value on the left hand side of the assignment operator.
 # - The rvalue is the value on the right hand side of the assignment operator.
-# - The coord field represents the coordinates of the statement in the original C file.
+# - The coord field represents the coordinates of the statement in the original
+#  C file.
+# (for all the other nodes have a look at the c_ast.py file.
 
-# To explore and perform operations on the AST, we need to extend the NodeVisitor class.
+# To explore and perform operations on the AST, we need to extend the
+# NodeVisitor class.
 # The NodeVisitor class has two methods, visit(Node) and generic_visit(Node).
-# - To visit and perform actions on specific Nodes, you have to implement visit_XXX(self, node) methods
+# - To visit and perform actions on specific Nodes, you have to implement
+#  visit_XXX(self, node) methods
 # that will visit the XXX type nodes.
-# - For a node of type XXX, if no visit_XXX method has been specified, the generic_visit(self,node) is called.
+# - For a node of type XXX, if no visit_XXX method has been specified,
+# the generic_visit(self,node) is called.
 # - Careful, by default the children of a node visited by a visit_XXX method will not be visited. If you want
 # to visit the children of the XXX node, call generic_visit(XXX) on your node.
 
