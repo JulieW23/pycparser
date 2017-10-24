@@ -13,6 +13,7 @@ suite = unittest.TestLoader().loadTestsFromNames(
         'test_general',
         'test_c_parser',
         'test_c_generator',
+        'test_c_ast_to_minic'
     ]
 )
 
